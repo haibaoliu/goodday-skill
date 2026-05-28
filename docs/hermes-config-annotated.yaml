@@ -1,0 +1,1098 @@
+# Hermes Agent 完整配置指南
+
+> **What · How · Why** — 每个配置项都讲清楚：**是什么、怎么配、为什么需要**
+>
+> Hermes 版本: `_config_version: 23`
+> 配置路径: `~/.hermes/config.yaml`
+> 修改方式: `hermes config edit` / `hermes config set <key> <value>`
+
+---
+
+## 快速索引
+
+| # | 配置块 | 一句话 What |
+|---|--------|------------|
+| 1 | [model](#1-model--模型服务商) | 你用哪个模型、哪个 API |
+| 2 | [providers / fallback / credential_pool](#2-providers--fallback--credential_pool) | 服务商降级和 API key 轮换 |
+| 3 | [custom_providers](#3-custom_providers--自定义服务商) | 对接非内置的 API 代理 |
+| 4 | [toolsets / platform_toolsets](#4-toolsets--platform_toolsets) | Agent 能用哪些工具，按平台限制 |
+| 5 | [agent](#5-agent--agent-核心行为) | 核心行为：最大轮次、超时、推理强度 |
+| 6 | [terminal](#6-terminal--终端执行环境) | Shell 执行环境：后端、超时、持久化 |
+| 7 | [web](#7-web--搜索与内容提取) | 搜索引擎和网页内容提取 |
+| 8 | [browser](#8-browser--浏览器自动化) | 浏览器自动化：超时、CDP、弹窗策略 |
+| 9 | [checkpoints](#9-checkpoints--文件系统快照) | 文件快照，支持 /rollback |
+| 10 | [file / tool_output](#10-file--tool_output--文件与工具输出限制) | 文件读取和工具输出的硬限制 |
+| 11 | [tool_loop_guardrails](#11-tool_loop_guardrails--工具循环护栏) | 防止死循环：警告和硬停止 |
+| 12 | [compression](#12-compression--上下文压缩) | 自动压缩旧消息为摘要 |
+| 13 | [prompt_caching](#13-prompt_caching--提示词缓存) | Anthropic/OpenRouter 缓存 |
+| 14 | [openrouter](#14-openrouter--openrouter-特有) | OpenRouter 响应缓存和模型筛选 |
+| 15 | [bedrock](#15-bedrock--aws-bedrock) | AWS Bedrock 模型发现和护栏 |
+| 16 | [auxiliary](#16-auxiliary--辅助模型) | 9 个辅助任务各自独立配置模型 |
+| 17 | [display](#17-display--显示与-ui) | CLI/TUI 显示：流式、紧凑模式、进度 |
+| 18 | [dashboard](#18-dashboard--web-dashboard) | Web Dashboard 主题 |
+| 19 | [privacy / security](#19-privacy--security--隐私与安全) | PII 脱敏、secret 屏蔽、Tirith 扫描 |
+| 20 | [approvals](#20-approvals--命令审批) | 危险命令审批策略 |
+| 21 | [command_allowlist / hooks](#21-command_allowlist--hooks) | 命令白名单和钩子 |
+| 22 | [personalities](#22-personalities--自定义人格) | 自定义人格扩展 |
+| 23 | [voice (TTS + STT)](#23-voice--语音-tts--stt) | 文字转语音和语音转文字 |
+| 24 | [human_delay](#24-human_delay--模拟打字延迟) | 模拟人类打字延迟 |
+| 25 | [context](#25-context--上下文引擎) | 上下文管理引擎选择 |
+| 26 | [memory](#26-memory--持久化记忆) | MEMORY.md / USER.md 和外部 provider |
+| 27 | [delegation](#27-delegation--子代理) | delegate_task 子代理配置 |
+| 28 | [goals](#28-goals--持久化目标) | 跨轮持久化任务 |
+| 29 | [skills](#29-skills--技能系统) | Skill 目录、模板变量、安全护栏 |
+| 30 | [curator](#30-curator--技能生命周期管理) | 技能自动审查、归档、备份 |
+| 31 | [cron](#31-cron--定时任务) | 定时任务全局设置 |
+| 32 | [kanban](#32-kanban--多-agent-协作看板) | 多 Agent 看板调度 |
+| 33 | [code_execution](#33-code_execution--python-沙箱) | execute_code 执行模式和限制 |
+| 34 | [logging](#34-logging--日志) | 日志级别、轮转 |
+| 35 | [model_catalog](#35-model_catalog--模型目录) | 远程模型目录缓存 |
+| 36 | [network](#36-network--网络) | IPv4/IPv6 强制 |
+| 37 | [sessions](#37-sessions--会话管理) | 会话自动清理和保留 |
+| 38 | [session_reset](#38-session_reset--会话自动重置) | 空闲/定时自动重置会话 |
+| 39 | [streaming](#39-streaming--流式输出全局开关) | 全局流式开关 |
+| 40 | [updates](#40-updates--更新策略) | 更新前备份 |
+| 41 | [messaging platforms](#41-消息平台配置) | Slack/Discord/Telegram/Matrix 配置 |
+| 42 | [plugins / image_gen](#42-plugins--image_gen) | 插件启用和图片生成 |
+| 43 | [其他](#43-其他) | 时区、prefill_messages、config_version |
+
+---
+
+## 1. model — 模型/服务商
+
+### What
+决定 Hermes 使用**哪个模型**（model name）和**哪个 API 服务商**（provider）。所有 LLM 调用都从这里出发。
+
+### How
+```yaml
+model:
+  default: deepseek-v4-pro       # 模型名
+  provider: deepseek             # 服务商标识
+  base_url: https://api.deepseek.com/v1  # API 端点
+```
+| 配置项 | What（是什么） | How（怎么配） | Why（为什么需要） |
+|--------|---------------|--------------|-------------------|
+| `default` | 默认使用的模型名称 | `hermes config set model.default "deepseek-v4-pro"` 或用 `hermes model` 交互选择 | Hermes 启动时从这里读模型名发给 API。空字符串会让 Hermes 自动探测，但可能不准 |
+| `provider` | 服务商标识符 | 内置名如 `deepseek`/`openrouter`/`anthropic`/`openai`/`google`；自定义的需匹配 `custom_providers[].name` | 决定用哪个 API 端点、哪种 auth 方式。内置服务商自动处理 base_url，自定义服务商需要在 `custom_providers` 中声明 |
+| `base_url` | API 端点 URL | 字符串，内置服务商可不写 | 仅对非内置服务商生效。内置的 deepseek/openrouter 等会自动解析端点 |
+
+### Why
+- **换模型只需改一行**：`model.default` 切换即可，Hermes 会为新模型自动适配 prompt 格式
+- **换服务商也只需一行**：`model.provider` 切换 API 来源
+- **如果 `provider` 和 `custom_providers[].name` 不匹配** → Agent 报错 "unknown provider"
+- **如果 `base_url` 写错了** → 所有 API 调用返回连接错误
+
+```yaml
+model:
+  default: deepseek-v4-pro
+  provider: deepseek
+  base_url: https://api.deepseek.com/v1
+```
+
+---
+
+## 2. providers / fallback / credential_pool
+
+### What
+**服务商降级链**和 **API key 池轮换**——主服务商挂了怎么办、多个 key 怎么分配负载。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `providers` | 覆盖内置服务商的 base_url | `{"openai": {"base_url": "https://my-proxy.com/v1"}}` | 当你用代理或私有部署时需要 |
+| `fallback_providers` | 主服务商不可用时，按顺序尝试的降级列表 | `["openrouter", "anthropic"]` | 生产环境必须——DeepSeek 挂了自动切 OpenRouter，不需要人工干预 |
+| `credential_pool_strategies` | 多 API key 的轮换策略 | `{"openrouter": "round_robin"}` | 多个 key 分摊 rate limit，避免单个 key 触发限流 |
+
+### Why
+- **不设 fallback**：主服务商宕机 → Agent 完全不可用
+- **不用 credential pool**：单个 key 的 rate limit 就是你的上限
+- **`providers` 不写也行**：内置服务商有默认 base_url
+
+```yaml
+providers: {}
+fallback_providers: []
+credential_pool_strategies: {}
+```
+
+---
+
+## 3. custom_providers — 自定义服务商
+
+### What
+对接**非内置**的 API 服务——私有部署的 vLLM、反向代理、国内 API 等。
+
+### How
+```yaml
+custom_providers:
+  - name: my-vllm               # ← model.provider 必须匹配这个
+    base_url: http://192.168.1.100:8000/v1
+    model: qwen2.5-72b
+```
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `name` | 服务商标识符 | 任意字符串，必须和 `model.provider` 完全一致 | **匹配不上 = 报错 unknown provider** |
+| `base_url` | API 端点 | `http://host:port/v1` 格式 | 指向你的代理或私有部署 |
+| `model` | 该服务商的默认模型 | 模型名 | 当 `model.default` 为空时使用 |
+
+### Why
+- **最常踩的坑**：`model.provider` 写 `deepseek`（内置），又在 `custom_providers` 里定义一个 `name: deepseek` → 冲突，因为内置已经有一个 deepseek
+- **解决**：自定义的用不同名字，如 `name: my-deepseek-proxy`
+
+```yaml
+custom_providers:
+  - name: Api.deepseek.com
+    base_url: https://api.deepseek.com
+    model: deepseek-v4-pro
+```
+
+---
+
+## 4. toolsets / platform_toolsets
+
+### What
+控制 Agent **能使用哪些工具**。`toolsets` 是全局默认，`platform_toolsets` 按平台覆盖。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `toolsets` | 全局启用的工具集列表 | `["hermes-cli"]` — 用 `hermes tools list` 查看可用列表 | CLI 模式核心工具在此；不加则 Agent 没有终端/文件/搜索能力 |
+| `platform_toolsets` | 按平台（cli/telegram/discord/weixin 等）分配不同的工具集组合 | `{cli: [hermes-cli], telegram: [hermes-telegram]}` | **安全边界**：WeChat bot 不应该有 `terminal` 权限；CLI 可以全功能 |
+
+### Why
+- **安全隔离**：你可以在 CLI 上用全部工具，但微信 bot 只给搜索和消息工具
+- **`toolsets` 没加工具集** → Agent 无法做任何实际操作，只能聊天
+
+```yaml
+toolsets:
+  - hermes-cli
+
+platform_toolsets:
+  cli: [hermes-cli]
+  telegram: [hermes-telegram]
+  weixin: [hermes-weixin]
+```
+
+---
+
+## 5. agent — Agent 核心行为
+
+### What
+Agent 运行时的核心参数——最大轮次、超时、重试、推理强度、内置人格。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `max_turns` | 每轮对话最大 tool-calling 迭代次数 | 整数，默认 90 | **防止死循环**：Agent 调用工具失败 → 重试 → 再失败时，这是最终的上限。设太大会浪费 token；设太小复杂任务完不成 |
+| `gateway_timeout` | Gateway 模式下单个请求总超时（秒） | 整数，默认 1800（30 分钟） | Gateway 长时间无响应 = 请求被丢弃 |
+| `api_max_retries` | API 调用失败后最大重试次数 | 整数，默认 3，指数退避 | 网络抖动时自动恢复；设为 0 = 一次失败就放弃 |
+| `tool_use_enforcement` | 强制工具调用策略 | `auto`（推荐）/ `on`（强制）/ `off`（禁止） | `auto` = 模型自己决定；`on` = 每轮必须调工具（调试用）；`off` = 纯聊天模式 |
+| `image_input_mode` | 图片输入模式 | `auto`/`off` | `auto` = vision 模型自动接收图片；`off` = 始终用文本描述替代（省钱） |
+| `reasoning_effort` | 推理强度 | `none`/`minimal`/`low`/`medium`/`high`/`xhigh` | 仅对支持此参数的模型生效（OpenAI o-series、DeepSeek-R1） |
+| `verbose` | CLI 详细模式 | `true`/`false` | 开启后显示更多调试信息 |
+
+### Why
+- **`max_turns: 90`** 对复杂多步任务足够；如果经常耗尽，先检查是不是有死循环而不是盲目加大
+- **`gateway_timeout: 1800`** 看似很长，但子代理任务可能超过这个时间，需要配合 `delegation.child_timeout_seconds` 使用
+- **`tool_use_enforcement: on`** 会导致简单问候也强行调工具
+
+```yaml
+agent:
+  max_turns: 90
+  gateway_timeout: 1800
+  restart_drain_timeout: 180
+  api_max_retries: 3
+  tool_use_enforcement: auto
+  image_input_mode: auto
+  reasoning_effort: medium
+  verbose: false
+```
+
+### 内置人格 (personalities)
+Agent 内置了 13 种预设人格，用 `/personality <name>` 切换：
+`helpful` / `concise` / `technical` / `creative` / `teacher` / `kawaii` / `catgirl` / `pirate` / `shakespeare` / `surfer` / `noir` / `uwu` / `philosopher` / `hype`
+
+---
+
+## 6. terminal — 终端执行环境
+
+### What
+控制 Agent 执行 Shell 命令的**运行环境**——本地直接执行还是容器隔离、超时、持久化 shell。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `backend` | 执行后端 | `local` / `docker` / `ssh` / `modal` / `daytona` / `singularity` / `vercel_sandbox` | `local` = 直接在宿主机执行（最快，无隔离）；`docker` = 容器隔离 |
+| `cwd` | 工作目录 | `.` = 当前目录；绝对路径 | Agent 执行的所有命令从这里出发 |
+| `timeout` | 命令超时（秒） | 默认 180，前景最大 600 | 防止命令挂死；超过 600 秒的用 `background=true` |
+| `persistent_shell` | 同一会话内 shell 状态保留 | `true`/`false` | `true` = `cd`、`export`、`source venv` 在当前 session 中保留，直到 `lifetime_seconds` 过期 |
+| `lifetime_seconds` | Shell 会话生命周期（秒） | 默认 300（5 分钟） | 过期后 shell 状态重置——你刚 `cd` 进去的目录就丢失了 |
+| `env_passthrough` | 透传给子进程的环境变量名列表 | `["MY_TOKEN", "API_KEY"]` | 默认不传任何环境变量给子进程，安全考量 |
+| `docker_run_as_host_user` | 容器内以宿主机 UID/GID 运行 | `true`/`false` | `false` = root 运行 → 输出文件归 root，宿主机无法操作 |
+
+### Why
+- **`persistent_shell + lifetime_seconds` 的组合是最常被忽略的**：你 `cd` 到项目目录，激活 venv，但 5 分钟后 shell 过期，下一条命令从错误目录执行
+- **`docker_run_as_host_user: false`** 意味着容器内所有文件写操作产生的文件，在宿主机上属于 root，你需要 `sudo` 才能操作
+- **`backend: docker`** 时，`read_file`/`write_file`/`search_files` 全部在容器内执行，路径是容器内路径
+
+```yaml
+terminal:
+  backend: local
+  cwd: .
+  timeout: 180
+  persistent_shell: true
+  lifetime_seconds: 300
+  docker_run_as_host_user: false
+```
+
+---
+
+## 7. web — 搜索与内容提取
+
+### What
+Agent 的 `web_search` 和 `web_extract` 工具用**哪个搜索引擎**和**哪个内容提取器**。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `backend` | 搜索引擎 | `""`（auto）/ `google` / `bing` / `duckduckgo` / `tavily` / `searxng` | auto = 有 API key 的优先；留空不设 = 自动选择 |
+| `extract_backend` | 网页内容提取器 | `""`（auto）/ `trafilatura` / `readability` / `browser` | 不同提取器对中文/JS 渲染页面的效果差异很大 |
+
+### Why
+- **不设置**：Hermes 自动选择可用后端，大多数情况够用
+- **在中国大陆**：Google/Bing 可能被墙，`duckduckgo` 或自建 `searxng` 更可靠
+
+```yaml
+web:
+  backend: ''
+  extract_backend: ''
+```
+
+---
+
+## 8. browser — 浏览器自动化
+
+### What
+Agent 的 `browser_navigate`/`browser_click`/`browser_snapshot` 等浏览器工具的行为控制。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `inactivity_timeout` | 页面无交互后自动关闭时间（秒） | 默认 120 | 防止浏览器进程泄漏 |
+| `command_timeout` | 单个浏览器命令超时（秒） | 默认 30 | 页面加载慢时可能需要调大 |
+| `allow_private_urls` | 是否允许访问 localhost/内网 IP | `true`/`false` | **安全关键**：`true` 意味着 Agent 可以访问你的本地服务 |
+| `auto_local_for_private_urls` | 遇私有 URL 自动切到本地 Chromium | `true`/`false` | 配合 `allow_private_urls` 使用 |
+| `cdp_url` | Chrome DevTools Protocol 连接 URL | 留空 = 自动管理 | 如果你有运行中的 Chrome 实例可以复用 |
+| `dialog_policy` | 浏览器弹窗处理 | `must_respond` / `auto_dismiss` | `auto_dismiss` = 自动关闭 alert/confirm/prompt |
+
+### Why
+- **`allow_private_urls: false` 是默认安全设置**：防止 Agent 扫描你的内网
+- **但这也意味着**：如果你想让 Agent 测试本地开发的应用，需要开启
+
+```yaml
+browser:
+  inactivity_timeout: 120
+  command_timeout: 30
+  allow_private_urls: false
+  auto_local_for_private_urls: true
+  dialog_policy: must_respond
+```
+
+---
+
+## 9. checkpoints — 文件系统快照
+
+### What
+开启后 Agent 可以创建文件系统快照，支持 `/rollback` 回滚。**类似 Git 但作用于工作目录的所有文件。**
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `enabled` | 是否启用 | `true`/`false` | **默认 `false`**！不开启则 `/rollback` 不可用 |
+| `max_snapshots` | 最多保留快照数 | 默认 20 | 超出自动删除最旧的 |
+| `max_total_size_mb` | 快照总大小上限 | 默认 500 MB | 防止快照吃光磁盘 |
+| `max_file_size_mb` | 单个文件最大备份大小 | 默认 10 MB | 大文件（模型、数据库）不备份 |
+| `retention_days` | 快照保留天数 | 默认 7 | 超过自动清理 |
+| `min_interval_hours` | 两次快照最小间隔 | 默认 24 小时 | 防止每个操作都拍快照 |
+
+### Why
+- **`enabled: false` 是默认**：大部分用户不需要回滚，快照会消耗磁盘
+- **开启后**：每次文件修改前可自动拍快照，出问题 `/rollback` 恢复
+
+```yaml
+checkpoints:
+  enabled: false
+  max_snapshots: 20
+  max_total_size_mb: 500
+  retention_days: 7
+```
+
+---
+
+## 10. file / tool_output — 文件与工具输出限制
+
+### What
+**硬限制**——Agent 读取文件和工具输出的上限，超过的直接截断。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `file_read_max_chars` | `read_file` 单次最大读取字符数 | 默认 100000 | 防止大文件撑爆 context window |
+| `tool_output.max_bytes` | 工具输出最大字节数 | 默认 50000 | **工具返回值过大 → 截断**，可能丢失关键信息 |
+| `tool_output.max_lines` | 工具输出最大行数 | 默认 2000 | 同上 |
+| `tool_output.max_line_length` | 单行最大长度 | 默认 2000 | 超长行（如 base64）会被截断 |
+
+### Why
+- **这些限制是保护机制**：防止一个工具返回 10MB 的输出把 LLM context 撑爆
+- **副作用**：如果你需要完整读取一个大文件，可能需要分段读（用 `offset`/`limit` 参数）
+
+---
+
+## 11. tool_loop_guardrails — 工具循环护栏
+
+### What
+**反死循环机制**——Agent 反复调同一个工具且每次都失败时，自动警告或强制停止。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `warnings_enabled` | 是否启用警告 | `true`/`false` | 默认 `true` —— 在终端打印警告 |
+| `hard_stop_enabled` | 是否启用硬停止 | `true`/`false` | **默认 `false`**！只警告不阻止；开启后才真正强制结束 |
+| `warn_after.exact_failure` | 完全相同失败重复 N 次后警告 | 默认 2 | 同一参数同一错误重复调用 = 明显死循环 |
+| `hard_stop_after.exact_failure` | 硬停止阈值 | 默认 5 | 5 次完全相同的失败 = 强制结束本轮 |
+
+### Why
+- **`hard_stop_enabled: false` 意味着**：Agent 可能一直重复失败直到 `max_turns: 90` 耗尽
+- **建议**：生产环境开启 `hard_stop_enabled: true` 来省 token
+
+```yaml
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: false
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5
+```
+
+---
+
+## 12. compression — 上下文压缩
+
+### What
+当对话 token 使用率达到阈值时，**自动将旧消息压缩为摘要**，防止超出模型 context window。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `enabled` | 是否启用 | `true`/`false` | **默认 `true`**。不开则长对话会在 context 满时直接截断旧消息 |
+| `threshold` | 触发压缩的 token 使用率 | 0.5 = 50% | 50% 就开始压缩，留足余量 |
+| `target_ratio` | 压缩后目标大小比例 | 0.2 = 压缩到 20% | 压缩越激进信息损失越多，但省 token |
+| `protect_last_n` | 保护最后 N 条消息不被压缩 | 默认 20 | 保证最近的对话上下文不丢失 |
+| `hygiene_hard_message_limit` | 消息数硬上限 | 默认 400 | 超过 400 条消息强制压缩，不管 threshold |
+
+### Why
+- **不开启压缩**：长对话直接截断（FIFO），可能丢失重要上下文
+- **开启压缩**：用 `auxiliary.compression` 指定的模型做摘要——这个模型的选择影响摘要质量
+
+---
+
+## 13. prompt_caching — 提示词缓存
+
+### What
+为支持 prompt caching 的模型（**仅 Anthropic 原生 API 和 OpenRouter**）自动注入 `cache_control` 断点。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `cache_ttl` | 缓存 TTL | `5m` / `10m` 等（Anthropic 格式） | Anthropic 缓存命中可省 90% 的 prompt token 费用 |
+
+### Why
+- **仅 Anthropic/OpenRouter 有效**——DeepSeek、OpenAI 不认这个参数
+- **与 compression 共存**：compression 压缩旧消息 → 新 system prompt + 摘要 → Anthropic 重建缓存
+
+```yaml
+prompt_caching:
+  cache_ttl: 5m
+```
+
+---
+
+## 14. openrouter — OpenRouter 特有
+
+### What
+OpenRouter 服务商的专属优化——响应缓存和模型筛选。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `response_cache` | OpenRouter 响应缓存 | `true`/`false` | 相同 prompt 直接返回缓存，省钱 |
+| `response_cache_ttl` | 缓存 TTL（秒） | 默认 300 | 5 分钟内相同请求走缓存 |
+| `min_coding_score` | 代码能力最低评分 | 0-1，默认 0.65 | 自动选择模型时，低于此分数的跳过 |
+
+```yaml
+openrouter:
+  response_cache: true
+  response_cache_ttl: 300
+  min_coding_score: 0.65
+```
+
+---
+
+## 15. bedrock — AWS Bedrock
+
+### What
+AWS Bedrock 服务商配置——区域、自动模型发现、Guardrails。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `region` | AWS 区域 | 空 = 自动检测 | Bedrock 模型在不同区域可用性不同 |
+| `discovery.enabled` | 自动发现可用模型 | `true`/`false` | 开启后自动列出你账号下有权限的模型 |
+| `discovery.refresh_interval` | 刷新间隔（秒） | 默认 3600 | 每小时刷新模型列表 |
+
+```yaml
+bedrock:
+  region: ''
+  discovery:
+    enabled: true
+    refresh_interval: 3600
+```
+
+---
+
+## 16. auxiliary — 辅助模型
+
+### What
+**9 个后台任务**各自独立配置模型——vision 看图、compression 摘要、session_search 会话搜索等等。这些任务**不经过主模型 context**，不影响主模型 token 消耗。
+
+### How
+每个辅助任务都有相同的配置结构：
+```yaml
+auxiliary:
+  <task_name>:
+    provider: auto            # 服务商；auto = 自动选择
+    model: ''                 # 模型名；空 = 继承
+    base_url: ''              # ⚠️ 空字符串会覆盖 .env！
+    api_key: ''               # ⚠️ 空字符串会覆盖 .env！
+    timeout: 120
+    extra_body: {}
+```
+
+### Why — 最重要的三个坑
+
+#### 🔴 空字符串 ≠ 未设置
+```yaml
+# ❌ 这等于告诉 Hermes「用空 key」
+auxiliary:
+  vision:
+    api_key: ''
+
+# ✅ 不写 api_key，让系统从 .env 自动读取
+auxiliary:
+  vision:
+    provider: alibaba
+    model: qwen-vl-max
+    # api_key 不写 = 从 DASHSCOPE_API_KEY 读取
+```
+
+#### 🔴 Vision 的 `base_url` 在非 custom provider 下被代码丢弃
+对于 `provider: alibaba`（非 `custom`），Hermes 会用内置注册表中的默认地址，**忽略你写的 `base_url`**。如果你的 API key 只在中国端点有效，用 `provider: custom:alibaba` + custom_providers 解决。
+
+#### 🟡 所有 9 个辅助任务都有这个陷阱
+vision、compression、session_search、skills_hub、approval、mcp、title_generation、triage_specifier、curator——它们的 `api_key: ''` 都会覆盖 `.env`。
+
+### 各任务说明
+
+| 任务 | 用途 | 推荐 provider |
+|------|------|--------------|
+| `vision` | `vision_analyze` 看图 | 你的眼睛模型（如 alibaba/qwen-vl-max）|
+| `web_extract` | 网页内容提取 | auto 即可 |
+| `compression` | 上下文压缩摘要 | 便宜模型即可（压缩质量要求不高）|
+| `session_search` | 会话搜索结果摘要 | auto |
+| `skills_hub` | 技能中心搜索 | auto |
+| `approval` | smart 模式下的命令风险评估 | auto |
+| `mcp` | MCP 工具相关 | auto |
+| `title_generation` | 会话标题生成 | auto |
+| `triage_specifier` | 问题分类 | auto |
+| `curator` | 后台技能维护 | auto |
+
+---
+
+## 17. display — 显示与 UI
+
+### What
+CLI/TUI 的**全部显示行为**——流式输出、紧凑模式、进度条、时间戳、颜色主题。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `streaming` | CLI 是否流式输出 | `true`/`false` | **注意**：这个和 `streaming.enabled` 是两个独立开关！后者是全局的 |
+| `compact` | 紧凑模式（减少空行） | `true`/`false` | 信息密度更高 |
+| `personality` | 默认人格 | `kawaii` / `concise` / `technical` 等 | 对应 `agent.personalities` 中的键名 |
+| `busy_input_mode` | Agent 忙碌时按 Enter 的行为 | `interrupt` / `queue` / `steer` / `status` | `interrupt` = 打断；`queue` = 排队 |
+| `show_reasoning` | 显示模型推理过程 | `true`/`false` | 对 DeepSeek-R1 等推理模型有意义 |
+| `tool_progress` | 工具执行进度显示 | `all` / `command` / `off` | `all` = 显示所有工具调用详情 |
+| `final_response_markdown` | 最终回复的 Markdown 处理 | `strip` / `render` / `raw` | `strip` = 纯文本；`render` = Rich 渲染 |
+| `skin` | TUI 皮肤 | `default` / `minimal` / `retro` / `cyberpunk` | 纯视觉偏好 |
+| `language` | 界面语言 | `en` / `zh` / `ja` | 影响 TUI 文字和提示 |
+| `background_process_notifications` | 后台进程完成通知 | `all` / `tagged` / `off` | `tagged` = 仅 `notify_on_complete=true` 的通知 |
+| `bell_on_complete` | 任务完成响铃 | `true`/`false` | 终端响铃通知 |
+| `timestamps` | 显示时间戳 | `true`/`false` | 每条消息前显示时间 |
+| `show_cost` | 显示 API 调用费用 | `true`/`false` | 仅 OpenRouter 等有价格数据的服务商有效 |
+
+### Why — 关键区分
+
+#### `display.streaming` vs `streaming.enabled`
+```yaml
+# 这两个是独立的！前者是 UI 层，后者是 API 层
+display:
+  streaming: true          # UI 显示流式效果
+
+streaming:
+  enabled: false           # API 非流式，上面 display 开也没用
+```
+**全局 `streaming.enabled: false` 会覆盖 `display.streaming`。**
+
+```yaml
+display:
+  compact: false
+  personality: kawaii
+  streaming: true
+  busy_input_mode: interrupt
+  show_reasoning: false
+  tool_progress: all
+  final_response_markdown: strip
+  language: en
+  background_process_notifications: all
+```
+
+---
+
+## 18. dashboard — Web Dashboard
+
+```yaml
+dashboard:
+  theme: default
+```
+纯粹的视觉主题配置，几乎不需要修改。
+
+---
+
+## 19. privacy / security — 隐私与安全
+
+### What
+保护你的**隐私数据**和**系统安全**——PII 脱敏、secret 屏蔽、命令安全扫描。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `privacy.redact_pii` | Gateway 模式脱敏 PII | `true`/`false` | 哈希用户 ID、去除手机号 |
+| `security.redact_secrets` | 工具输出中屏蔽疑似密钥 | `true`/`false` | 基于正则匹配 API key、token 模式并替换为 `[REDACTED]` |
+| `security.tirith_enabled` | 启用 Tirith 命令安全扫描 | `true`/`false` | 每个 shell 命令执行前调用 tirith 检查风险 |
+| `security.tirith_fail_open` | Tirith 扫描失败时的行为 | `true` = 放行；`false` = 拒绝 | **没装 tirith 时设 `false` 会拒绝所有命令！** |
+| `security.website_blocklist` | 网站黑名单 | 域名字符串列表 | 禁止访问特定域名的工具 |
+
+### Why
+- **`redact_secrets: true` 后重启才生效**——当前 session 不变（防止 LLM 在运行中关掉自己的安全开关）
+- **`tirith_enabled: true` 但没装 tirith**：`tirith_fail_open: true` 时无影响（扫描失败放行）；`false` 时所有命令被拒绝
+- **`website_blocklist` 可以防止 Agent 访问恶意网站或有安全风险的内部服务**
+
+```yaml
+privacy:
+  redact_pii: false
+
+security:
+  redact_secrets: true
+  tirith_enabled: true
+  tirith_fail_open: true
+  website_blocklist:
+    enabled: false
+    domains: []
+```
+
+---
+
+## 20. approvals — 命令审批
+
+### What
+**危险命令执行前是否需要人类确认**——`rm -rf`、`git push --force` 等。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `mode` | 审批策略 | `manual`（弹出确认）/ `smart`（AI 自动评估）/ `off`（= yolo） | `manual` = 最安全；`smart` = 低风险自动放行；`off` = 完全跳过 |
+| `timeout` | 审批超时（秒） | 默认 60 | 超时自动拒绝 |
+| `cron_mode` | Cron job 模式下的审批 | `deny` / `auto` / `ask` | Cron 没有人可以确认，所以 `deny` = 拒绝危险命令；`auto` = 自动放行 |
+| `mcp_reload_confirm` | MCP 重载确认 | `true`/`false` | 是否每次重载 MCP 服务都要确认 |
+
+### Why
+- **`mode: smart`** 用 `auxiliary.approval` 指定的模型评估风险——模型质量影响评估准确性
+- **`cron_mode: deny`** 是最安全的——cron 任务没人审批，遇到危险命令直接拒绝
+- **子代理默认没有审批**：`delegation.subagent_auto_approve: false` 意味着子代理的危险命令直接拒绝
+
+```yaml
+approvals:
+  mode: manual
+  timeout: 60
+  cron_mode: deny
+```
+
+---
+
+## 21. command_allowlist / hooks
+
+### What
+**命令白名单**和 **Shell 钩子**——预设哪些模式免审批，以及自动执行脚本。
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `command_allowlist` | 免审批的命令模式（自然语言描述） | 字符串列表 | 匹配的命令跳过 `approvals` 检查 |
+| `quick_commands` | 快捷别名 | `{"gc": "git commit -m"}` | 缩写常用命令 |
+| `hooks` | Shell 钩子 | `{"pre_cmd": "echo running"}` | 在命令前后自动执行脚本 |
+| `hooks_auto_accept` | 自动接受新钩子 | `true`/`false` | `false` = 新钩子需要确认（安全） |
+
+```yaml
+command_allowlist:
+  - overwrite project env/config via redirection
+  - script execution via -e/-c flag
+quick_commands: {}
+hooks: {}
+hooks_auto_accept: false
+```
+
+---
+
+## 22. personalities — 自定义人格
+
+### What
+扩展内置人格列表。和 `agent.personalities` 合并，自定义优先。
+
+```yaml
+personalities:
+  my_style: "You are a concise, security-focused engineer..."
+```
+然后用 `/personality my_style` 切换。
+
+---
+
+## 23. voice — 语音 (TTS + STT)
+
+### What
+**文字转语音**（TTS，Agent 说话）和**语音转文字**（STT，你说话）。
+
+### How — TTS
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `tts.provider` | TTS 服务商 | `edge`（免费）/ `elevenlabs` / `openai` / `mistral` / `neutts`（本地）/ `piper`（本地） | `edge` 免费但声音选择少；`elevenlabs` 质量最高但要 API key |
+| `tts.edge.voice` | Edge TTS 语音 | `en-US-AriaNeural` 等 | 微软 Edge TTS 支持多种语言和声音 |
+
+### How — STT
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `stt.provider` | STT 服务商 | `local`（faster-whisper 免费）/ `openai` / `mistral` | `local` 免费跑在本地；`openai` 更准但要 API key |
+| `stt.local.model` | 本地模型大小 | `tiny` / `base` / `small` / `medium` / `large-v3` | 越大越准但越慢/吃内存 |
+
+```yaml
+tts:
+  provider: edge
+  edge:
+    voice: en-US-AriaNeural
+
+stt:
+  enabled: true
+  provider: local
+  local:
+    model: base
+
+voice:
+  record_key: ctrl+b
+  max_recording_seconds: 120
+  auto_tts: false
+```
+
+---
+
+## 24. human_delay — 模拟打字延迟
+
+### What
+在 Agent 文字输出中加入**随机延迟**，模拟人类打字速度。纯视觉体验。
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `mode` | 模式 | `off` / `fixed` / `random` | `off` = 瞬间输出；`random` = 随机延迟 |
+| `min_ms` / `max_ms` | 延迟范围（毫秒） | 800–2500 | 人类打字大概这个速度 |
+
+```yaml
+human_delay:
+  mode: 'off'
+  min_ms: 800
+  max_ms: 2500
+```
+
+### Why
+- **`mode: 'off'` 是全局的**：即使 `display.streaming: true`，关了这个也没有打字机效果
+- 纯粹本地行为，不影响 API 调用
+
+---
+
+## 25. context — 上下文引擎
+
+### What
+选择上下文管理引擎——默认 `compressor`。插件可以替换。
+
+```yaml
+context:
+  engine: compressor
+```
+
+---
+
+## 26. memory — 持久化记忆
+
+### What
+Agent 的**长期记忆系统**——跨 session 记住你的偏好、环境信息、经验教训。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `memory_enabled` | 是否启用 MEMORY.md（Agent 个人笔记） | `true`/`false` | `false` = Agent 不主动记东西 |
+| `user_profile_enabled` | 是否启用 USER.md（用户画像） | `true`/`false` | `false` = Agent 不记录你的信息 |
+| `memory_char_limit` | MEMORY.md 字符上限 | 默认 2200 | **这是字符数不是 token 数**——跨模型一致 |
+| `user_char_limit` | USER.md 字符上限 | 默认 1375 | 同上 |
+| `provider` | 外部 memory provider | `honcho` / `mem0` / `supermemory` / `hindsight` | 留空 = 仅用内置文件级 memory |
+| `nudge_interval` | 后台 memory review 间隔（轮） | 默认 10 | 每 10 轮 tool-calling 后自动检查是否有新记忆 |
+| `flush_min_turns` | 最少累计轮数后才写入 | 默认 6 | 防止太频繁写磁盘 |
+
+### Why
+- **写入 Memory 后当前 session 不立即生效**：Hermes 用 Frozen Snapshot 模式——启动时拍快照注入 system prompt，mid-session 写入对新消息不可见
+- **Memory 是持久化攻击面**：如果有恶意 prompt injection 污染了 Memory，所有未来 session 都受影响
+- **两个文件的位置**：`~/.hermes/memories/MEMORY.md` 和 `~/.hermes/memories/USER.md`，可以手动编辑，用 `§` 分隔条目
+
+```yaml
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 2200
+  user_char_limit: 1375
+  provider: ''
+  nudge_interval: 10
+  flush_min_turns: 6
+```
+
+---
+
+## 27. delegation — 子代理
+
+### What
+`delegate_task` 创建的子代理的**运行参数**——模型、超时、并发数、嵌套深度。
+
+### How
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `model` / `provider` / `base_url` | 子代理的模型和服务商 | 空 = 继承主模型 | 子代理可以用更便宜的模型 |
+| `max_iterations` | 子代理最大 tool-calling 轮数 | 默认 50 | 独立于主 agent 的 `max_turns: 90` |
+| `child_timeout_seconds` | 子代理超时（秒） | 默认 600（10 分钟） | 超时后返回已有结果 |
+| `max_concurrent_children` | 最多并行子代理数 | 默认 3 | batch 模式下同时跑几个 |
+| `max_spawn_depth` | 最大嵌套深度 | `0` = 禁止嵌套；`1` = 可再 delegate 一层 | 防止无限递归 |
+| `subagent_auto_approve` | 是否自动审批子代理的危险命令 | `true`/`false` | `false` = 子代理遇到 `rm` 等直接拒绝 |
+
+### Why
+- **子代理超时或耗尽迭代不会让主 agent 崩溃**——返回已有结果
+- **`subagent_auto_approve: false`** 是最安全的设置，但也意味着子代理无法执行危险命令
+- **子代理的 `max_iterations: 50` + 主 agent 的 `max_turns: 90`**：两个独立限制
+
+```yaml
+delegation:
+  model: ''
+  provider: ''
+  max_iterations: 50
+  child_timeout_seconds: 600
+  max_concurrent_children: 3
+  max_spawn_depth: 1
+  orchestrator_enabled: true
+  subagent_auto_approve: false
+```
+
+---
+
+## 28. goals — 持久化目标
+
+### What
+跨轮持久化任务的执行参数。
+
+```yaml
+goals:
+  max_turns: 20
+```
+
+---
+
+## 29. skills — 技能系统
+
+### What
+Skill（技能）的**加载、执行、安全护栏**。
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `external_dirs` | 额外技能目录 | 绝对路径列表 | 除了 `~/.hermes/skills/` 之外加载别处的技能 |
+| `template_vars` | SKILL.md 中支持 `{{var}}` 模板变量 | `true`/`false` | 开启后技能内容可以用变量动态替换 |
+| `inline_shell` | 允许技能内联执行 shell | `true`/`false` | **默认 `false`（安全）**——防止恶意技能执行命令 |
+| `guard_agent_created` | 审查 Agent 创建的新技能 | `true`/`false` | 防止 Agent 创建恶意技能 |
+| `creation_nudge_interval` | 技能创建提醒间隔（轮） | 默认 15 | 每 15 轮提醒保存学到的新技能 |
+
+```yaml
+skills:
+  external_dirs: []
+  template_vars: true
+  inline_shell: false
+  guard_agent_created: false
+  creation_nudge_interval: 15
+```
+
+---
+
+## 30. curator — 技能生命周期管理
+
+### What
+自动审查、标记 stale、归档技能。后台运行。
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `enabled` | 是否启用 | `true`/`false` | 关闭则技能不会自动维护 |
+| `interval_hours` | 审查间隔 | 默认 168（每周） | 太频繁浪费 token；太罕见技能腐化 |
+| `stale_after_days` | 多少天未使用标记为 stale | 默认 30 | stale 后提醒但不删除 |
+| `archive_after_days` | stale 后多少天归档 | 默认 90 | 归档 = 移出活跃技能列表 |
+| `backup.enabled` | 每次审查前备份 | `true`/`false` | 防止审查逻辑错误删掉有用的技能 |
+
+```yaml
+curator:
+  enabled: true
+  interval_hours: 168
+  stale_after_days: 30
+  archive_after_days: 90
+  backup:
+    enabled: true
+    keep: 5
+```
+
+---
+
+## 31. cron — 定时任务
+
+```yaml
+cron:
+  wrap_response: true           # 用 header/footer 包裹 cron 输出
+  max_parallel_jobs: null       # 最大并行 job 数；null = 不限制
+```
+
+---
+
+## 32. kanban — 多 Agent 协作看板
+
+```yaml
+kanban:
+  dispatch_in_gateway: true
+  dispatch_interval_seconds: 60
+  failure_limit: 2              # 连续失败 N 次后 block
+```
+
+---
+
+## 33. code_execution — Python 沙箱
+
+### What
+`execute_code` 工具的执行环境和限制。
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `mode` | 执行模式 | `project`（项目目录，可访问依赖）/ `sandbox`（隔离） | `project` = 可以用 pandas 等已安装的库 |
+| `timeout` | 超时（秒） | 默认 300（5 分钟） | Python 脚本最多跑 5 分钟 |
+| `max_tool_calls` | 单次脚本最多调用多少次工具 | 默认 50 | 防止循环调用 |
+
+```yaml
+code_execution:
+  mode: project
+  timeout: 300
+  max_tool_calls: 50
+```
+
+---
+
+## 34. logging — 日志
+
+```yaml
+logging:
+  level: INFO                    # DEBUG|INFO|WARNING|ERROR
+  max_size_mb: 5                 # 单文件最大 MB
+  backup_count: 3                # 保留旧文件数（轮转）
+```
+
+---
+
+## 35. model_catalog — 模型目录
+
+### What
+从远程 URL 拉取模型列表和元数据（价格、context window 等）。
+
+```yaml
+model_catalog:
+  enabled: true
+  url: https://hermes-agent.nousresearch.com/docs/api/model-catalog.json
+  ttl_hours: 24                  # 缓存 24 小时
+```
+
+---
+
+## 36. network — 网络
+
+```yaml
+network:
+  force_ipv4: false              # 某些环境 IPv6 有问题时开启
+```
+
+---
+
+## 37. sessions — 会话管理
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `auto_prune` | 自动清理旧会话 | `true`/`false` | 默认 `false`——会话会一直保留 |
+| `retention_days` | 保留天数 | 默认 90 | 超过自动删除 |
+| `vacuum_after_prune` | 清理后 VACUUM | `true`/`false` | 回收 SQLite 空间 |
+
+```yaml
+sessions:
+  auto_prune: false
+  retention_days: 90
+  vacuum_after_prune: true
+  min_interval_hours: 24
+```
+
+---
+
+## 38. session_reset — 会话自动重置
+
+### What
+长时间空闲后**自动重置 Agent 的 context/memory 状态**。
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `mode` | 重置模式 | `memory_only` / `full` / `both` | `full` = 完全重置；`memory_only` = 仅重置记忆上下文 |
+| `idle_minutes` | 空闲分钟后触发 | 默认 1440（24 小时） | 一天没说话就重置 |
+| `at_hour` | 每天固定时间重置（UTC） | 默认 4（北京时间 12:00） | 对 Gateway 常驻 session 有用 |
+
+```yaml
+session_reset:
+  mode: both
+  idle_minutes: 1440
+  at_hour: 4
+```
+
+---
+
+## 39. streaming — 流式输出全局开关
+
+### What
+**API 层面的流式开关**。与 `display.streaming`（UI 层）独立。
+
+```yaml
+streaming:
+  enabled: false               # false = 非流式，等完整回复
+```
+
+### Why
+- **这是真正的全局开关**：`false` 时 API 请求不加 `stream: true`，即使 `display.streaming: true` 也无效
+- **非流式更快**但用户要等完整回复才能看到第一个字
+- **流式体验好**但 token 间有网络延迟
+
+---
+
+## 40. updates — 更新策略
+
+```yaml
+updates:
+  pre_update_backup: false       # 更新前备份
+  backup_keep: 5                 # 保留最近 N 个备份
+```
+
+---
+
+## 41. 消息平台配置
+
+### Slack
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `require_mention` | 是否需要 @mention | `true`/`false` | `false` = 所有消息都响应 |
+| `allowed_channels` | 白名单频道 | 逗号分隔 | 空 = 所有频道 |
+
+### Discord
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `require_mention` | 是否需要 @mention | `true`/`false` | — |
+| `auto_thread` | 自动创建 thread | `true`/`false` | 把对话隔离到 thread 中 |
+| `reactions` | 是否添加 emoji | `true`/`false` | Agent 回复上加 emoji 反应 |
+
+### Telegram
+```yaml
+telegram:
+  reactions: false
+  allowed_chats: ''             # 白名单 ID
+```
+
+### Matrix / Mattermost / WhatsApp
+类似的 `require_mention` + `allowed_*` 模式。
+
+---
+
+## 42. plugins / image_gen
+
+### What
+启用插件和配置图片生成（阿里云 DashScope 通义万相）。
+
+```yaml
+plugins:
+  enabled:
+    - image_gen/dashscope
+
+image_gen:
+  provider: dashscope
+  model: wanx2.1-t2i-turbo
+```
+
+---
+
+## 43. 其他
+
+| 配置项 | What | How | Why |
+|--------|------|-----|-----|
+| `timezone` | 时区 | 空 = 自动检测 | 影响 cron 和 scheduled 任务 |
+| `prefill_messages_file` | 预填充消息文件 | 文件路径 | **每次对话开始都注入**——不要放敏感信息 |
+| `_config_version` | 内部版本号 | **不要手动修改** | Hermes 用这个判断配置格式 |
+
+```yaml
+timezone: ''
+prefill_messages_file: ''
+_config_version: 23
+```
+
+---
+
+## 附录：快速诊断命令
+
+```bash
+hermes doctor --fix         # 健康检查 + 自动修复
+hermes config check         # 检查配置完整性
+hermes config migrate       # 迁移到最新格式
+hermes tools list           # 查看所有可用工具
+hermes memory status        # 查看 memory 状态
+hermes sessions list        # 会话列表
+```
+
+---
+
+> **版本**: `_config_version: 23` | **社区维护** | CC0
+> 每个配置项都经过实战验证，"不保证完整性，但保证不误导。"
