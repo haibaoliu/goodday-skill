@@ -345,6 +345,16 @@ checkpoints:
 - **这些限制是保护机制**：防止一个工具返回 10MB 的输出把 LLM context 撑爆
 - **副作用**：如果你需要完整读取一个大文件，可能需要分段读（用 `offset`/`limit` 参数）
 
+```yaml
+# === file / tool_output 配置示例 ===
+file_read_max_chars: 100000
+
+tool_output:
+  max_bytes: 50000
+  max_lines: 2000
+  max_line_length: 2000
+```
+
 ---
 
 ## 11. tool_loop_guardrails — 工具循环护栏
@@ -397,6 +407,15 @@ tool_loop_guardrails:
 ### Why
 - **不开启压缩**：长对话直接截断（FIFO），可能丢失重要上下文
 - **开启压缩**：用 `auxiliary.compression` 指定的模型做摘要——这个模型的选择影响摘要质量
+
+```yaml
+compression:
+  enabled: true
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 20
+  hygiene_hard_message_limit: 400
+```
 
 ---
 
@@ -519,6 +538,42 @@ vision、compression、session_search、skills_hub、approval、mcp、title_gene
 | `title_generation` | 会话标题生成 | auto |
 | `triage_specifier` | 问题分类 | auto |
 | `curator` | 后台技能维护 | auto |
+
+```yaml
+# === auxiliary 完整配置示例 ===
+auxiliary:
+  vision:
+    provider: alibaba
+    model: qwen-vl-max
+    # base_url 和 api_key 不写，从 .env 自动读取
+    timeout: 120
+
+  web_extract:
+    provider: auto
+    timeout: 360
+
+  compression:
+    provider: auto
+    timeout: 120
+
+  session_search:
+    provider: auto
+    max_concurrency: 3
+
+  approval:
+    provider: auto
+    timeout: 30
+
+  title_generation:
+    provider: auto
+
+  triage_specifier:
+    provider: auto
+
+  curator:
+    provider: auto
+    timeout: 600
+```
 
 ---
 
@@ -1029,12 +1084,25 @@ updates:
 | `require_mention` | 是否需要 @mention | `true`/`false` | `false` = 所有消息都响应 |
 | `allowed_channels` | 白名单频道 | 逗号分隔 | 空 = 所有频道 |
 
+```yaml
+slack:
+  require_mention: true
+  allowed_channels: ''           # 空 = 所有频道
+```
+
 ### Discord
 | 配置项 | What | How | Why |
 |--------|------|-----|-----|
 | `require_mention` | 是否需要 @mention | `true`/`false` | — |
 | `auto_thread` | 自动创建 thread | `true`/`false` | 把对话隔离到 thread 中 |
 | `reactions` | 是否添加 emoji | `true`/`false` | Agent 回复上加 emoji 反应 |
+
+```yaml
+discord:
+  require_mention: true
+  auto_thread: true
+  reactions: true
+```
 
 ### Telegram
 ```yaml
