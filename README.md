@@ -1,6 +1,6 @@
 # Hermes Skills — 开源技能包
 
-一套面向 Hermes Agent 的通用技能，覆盖**大脑系统**、**自进化**、**安全合规**、**创意写作**和**质量管理**五大领域。
+一套面向 Hermes Agent 的通用技能，覆盖**大脑系统**、**自进化**、**安全合规**、**创意写作**、**质量管理**和**多智能体协作**六大领域。
 
 ## 技能清单
 
@@ -17,6 +17,8 @@
 | `roundtable` | 圆桌讨论 | 3-5 位历史/当代人物结构化辩证对话，主持人引导真理追寻 |
 | `other-review` | 他者审查 | 独立子 Agent 审查主 Agent 产出，支持多模型共识模式 |
 | `angle-interview` | 多角度追问 | 复杂任务前从对立角度追问，对比答案暴露隐藏矛盾 |
+| `kanban-orchestrator` | 看板编排器 | 任务分解 + 死胡同回避 + 停滞检测自动重组 |
+| `kanban-worker` | 看板工人 | 工作器规范：交棒格式、死胡同记录、重试避障 |
 
 ## 快速安装
 
@@ -140,6 +142,30 @@ Brain 健康检查与知识维护。
 **默认三问**: 😨恐惧 + ✂️删除 + ⏪回退
 
 **矛盾检测**: 恐惧说要防泄露，但愿意砍掉审计日志 → 认知盲区暴露。
+
+### 多智能体协作（🤝 Multi-Agent）
+
+#### 12. kanban-orchestrator — 看板编排器
+
+任务分解、路由与自愈的编排器技能。受 AutoScientists (Harvard, 2026) 启发。
+
+**核心机制**:
+- **死胡同注册**: 分解前读取 dead-end registry，自动避开已失败方向
+- **停滞检测**: 连续 3 次无改进任务 → 触发 Merge/Split/Redirect/Abandon
+- **依赖门控**: 子任务自动等待父任务完成后再进入 ready
+
+**Anti-temptation 规则**: 编排器只做分解和路由，不亲自执行实现工作。
+
+#### 13. kanban-worker — 看板工人
+
+Kanban 工作器的规范与边缘案例手册。由调度器自动加载到每个派发的工作器中。
+
+**核心机制**:
+- **交棒格式**: 结构化 metadata（changed_files / tests_run / decisions）供下游解析
+- **死胡同记录**: 方法级失败时自动写入 dead-end registry（block/warn 分级）
+- **重试避障**: 重试前先读 registry，命中 block 则直接 cancel
+
+**与 orchestrator 联动**: Worker 写死胡同 → Orchestrator 读死胡同 → 新任务带死胡同警告。
 
 ## 设计理念
 
