@@ -19,6 +19,7 @@
 | `angle-interview` | 多角度追问 | 复杂任务前从对立角度追问，对比答案暴露隐藏矛盾 |
 | `kanban-orchestrator` | 看板编排器 | 任务分解 + 死胡同回避 + 停滞检测自动重组 |
 | `kanban-worker` | 看板工人 | 工作器规范：交棒格式、死胡同记录、重试避障 |
+| `unchanged_filter.py` | UNCHANGED 过滤器 | cron job 输出哈希比对，标记 new/changed/unchanged/dropped，节省 60-80% LLM 工作 |
 
 ## 快速安装
 
@@ -41,15 +42,17 @@ cp -r hermes-skills/skills/* ~/.hermes/profiles/<name>/skills/
 
 **格式**: 遵循 brain-page 格式规范，写入 `~/.hermes/brain/`。
 
-#### 2. brain-query — 大脑查询
+#### 2. brain-query — 大脑查询 v2.0
 
-从 Hermes Brain 中搜索和检索信息。
+从 Hermes Brain 中搜索和检索信息。**v2.0 新增** `scripts/brain_query.py` 确定性脚本，处理搜索/过滤/Facts提取/矛盾候选检测，LLM 只负责相关性排序和矛盾真伪判断。
 
 **搜索方式**: 关键词 / 实体 / 日期 / 语义相似度，支持跨页矛盾检测。
 
-#### 3. brain-maintain — 大脑维护
+**子命令**: `search`（关键词搜索）、`contradictions`（矛盾检测）、`context`（Book Mirror 上下文收集）。
 
-Brain 健康检查与知识维护。
+#### 3. brain-maintain — 大脑维护 v2.0
+
+Brain 健康检查与知识维护。**v2.0 新增** `scripts/brain_health.py` 确定性脚本，一键输出 JSON 健康报告（孤岛/back-link/frontmatter/stale/pattern 候选），LLM 只负责修复决策和模式合成判断。
 
 **功能**: 反向链接审计、孤页检测、模式合成。建议在大量摄入后或定期运行。
 

@@ -1,7 +1,7 @@
 ---
 name: brain-maintain
 description: Use when the brain needs health checks, back-link audits, orphan detection, or pattern synthesis. Run periodically or after heavy ingestion sessions.
-version: 1.0.0
+version: 2.0.0
 author: Hermes Brain System
 license: MIT
 metadata:
@@ -14,7 +14,11 @@ metadata:
 
 ## Overview
 
-保持 Hermes Brain 的数据质量。检测孤岛页面、断裂的 back-link、过期内容，以及从多篇反思中合成跨会话模式。
+保持 Hermes Brain 的数据质量。检测孤岛页面、断裂的 back-link、过期内容，
+以及从多篇反思中合成跨会话模式。
+
+**v2.0 架构**：确定性数据收集由 `scripts/brain_health.py` 完成（JSON 报告），
+LLM 只负责语义决策——哪些孤岛要链接/删除、哪些候选构成真实模式、如何修复。
 
 ## When to Use
 
@@ -23,147 +27,101 @@ metadata:
 - Book Mirror 运行前做一次健康检查
 - 定期（建议每周一次）
 
-## 健康检查清单
-
-### 1. 孤岛检测
-
-找出没有被任何其他页面引用的页面：
+## Phase 1: Run Health Scanner (Deterministic)
 
 ```bash
-# 收集所有脑页
-find ~/.hermes/brain/ -name "*.md" ! -name "BRAIN_FORMAT.md" ! -name "USER.md" ! -name "SOUL.md" > /tmp/brain_pages.txt
-
-# 检查每个页面是否被其他页面引用
-while read page; do
-  slug=$(basename "$page" .md)
-  refs=$(grep -rl "$slug" ~/.hermes/brain/ --include="*.md" | grep -v "$page" | wc -l)
-  if [ "$refs" -eq 0 ]; then
-    echo "ORPHAN: $page"
-  fi
-done < /tmp/brain_pages.txt
+python ${SKILL_DIR}/scripts/brain_health.py --brain-dir ~/.hermes/brain
 ```
 
-### 2. Back-link 完整性
+This produces a JSON report with these sections:
+- `stats` — total pages, breakdown by category
+- `orphans` — pages not referenced by any other page (slug, path, category, age)
+- `backlink_issues` — recent pages whose mentioned entities lack a back-link
+- `frontmatter_issues` — pages with missing/incomplete YAML frontmatter
+- `stale_content` — pattern/concept pages untouched for >90 days
+- `pattern_candidates` — themes with ≥3 reflection occurrences across ≥7 days
+- `summary` — health_score ("healthy" | "needs_attention")
 
-检查新页面是否在提及的人物/概念页上创建了 back-link：
+Options:
+- `--summary` — print summary only
+- `--stale-days 60` — custom stale threshold
+- `--recent-days 14` — custom recent window for back-link checks
 
-```bash
-# 找出最近 7 天创建的页面
-find ~/.hermes/brain/ -name "*.md" -mtime -7 -newer ~/.hermes/brain/BRAIN_FORMAT.md
+## Phase 2: LLM Decision (Semantic)
 
-# 对每个新页面，检查它提到的实体是否有 back-link
-# 手动检查：读新页面 → 提取提到的实体 → 检查实体页的 Timeline
-```
+Read the JSON output from Phase 1. For each section, make decisions:
 
-### 3. Frontmatter 完整性
+### Orphans
+For each orphan:
+- **链接**：哪些已有页面应该引用它？补充 back-link。
+- **删除**：如果内容已无用，直接删掉 `.md` 文件。
+- **保留**：如果是结构页（如 category index），标记为 intentional。
 
-```bash
-# 检查所有脑页是否有完整的 frontmatter
-for f in $(find ~/.hermes/brain/ -name "*.md" ! -name "BRAIN_FORMAT.md"); do
-  if ! head -1 "$f" | grep -q "^---$"; then
-    echo "MISSING FRONTMATTER: $f"
-  fi
-done
-```
+### Back-link Issues
+For each `backlink_issues` entry:
+- 在 `target` 页面上添加对 `source_slug` 的引用（Timeline 或相关段落）。
 
-### 4. 过期内容提醒
+### Frontmatter Issues
+For each `frontmatter_issues` entry:
+- `missing_frontmatter` → 添加完整的 `---` YAML 块
+- `incomplete_frontmatter` → 补全 missing_fields
 
-```bash
-# 找出超过 90 天未更新的模式页（可能需要重新审视）
-find ~/.hermes/brain/patterns/ -name "*.md" -mtime +90
-```
+### Stale Content
+For each stale pattern/concept:
+- 内容是否仍然准确？→ 更新 date 字段 refresh
+- 内容已过时？→ 归档或重写
+- 标记建议，询问用户
 
-## 模式合成
+### Pattern Candidates
+For `pattern_candidates` with count >= 3 and span >= 7 days:
+1. 读取所有源反思（`sources[].path`）
+2. 提取：触发情境、用户反应、用户原话、日期
+3. 判断是否构成真实模式（非偶然、有共同触发条件）
+4. 如构成 → 写入模式页，back-link 所有源
+5. 如不构成 → 记录跳过原因
 
-当 `reflections/` 中有 ≥3 篇涉及相似主题时，合成一个新模式：
-
-### 合成流程
-
-1. **收集候选**：
-```bash
-grep -rl "<theme_keyword>" ~/.hermes/brain/reflections/ --include="*.md" | sort
-```
-
-2. **读取所有候选反思**，提取：
-   - 触发情境
-   - 用户反应
-   - 用户的原话（verbatim quotes）
-   - 日期
-
-3. **判断是否构成模式**：
-   - ≥3 次独立出现
-   - 跨 ≥7 天
-   - 有共同触发条件或反应模式
-
-4. **写入模式页**，用 `brain-ingest` 的模板
-
-5. **Back-link 所有源反思**到新模式
-
-### 合成输出示例
+## 模式合成输出模板
 
 ```markdown
 ---
-title: "截止前冲刺模式"
+title: "模式名称"
 type: pattern
-date: 2026-05-23
-tags: [pattern, productivity, procrastination]
+date: YYYY-MM-DD
+tags: [pattern, ...]
 links:
-  - ../reflections/2026-05-01-blog-deadline.md
-  - ../reflections/2026-05-10-report-delay.md
-  - ../reflections/2026-05-20-presentation-rush.md
+  - ../reflections/source-1.md
+  - ../reflections/source-2.md
 ---
 
-# 截止前冲刺模式
+# 模式名称
 
 ## 模式描述
-在截止前 24-48 小时进入高效冲刺状态，但前期的拖延导致不必要的压力和睡眠不足。
+[一句话概括]
 
 ## 证据链
-- **2026-05-01** | 博客在发布前 3 小时完成 → [reflection](reflections/2026-05-01-blog-deadline.md)
-- **2026-05-10** | 季报在截止日当天提交 → [reflection](reflections/2026-05-10-report-delay.md)
-- **2026-05-20** | PPT 在演示前一夜做完 → [reflection](reflections/2026-05-20-presentation-rush.md)
+- **YYYY-MM-DD** | 简述 → [reflection](reflections/source-N.md)
 
 ## 用户原话
-> "我好像总是在最后一刻才真正动起来"
+> "..."
 
 ## 可能的干预
-- 设置假截止日（提前 2 天）
-- 公开承诺（social accountability）
-```
-
-## 一键健康报告
-
-```bash
-echo "=== Hermes Brain 健康报告 $(date +%Y-%m-%d) ==="
-echo ""
-echo "--- 页面统计 ---"
-find ~/.hermes/brain/ -name "*.md" ! -name "BRAIN_FORMAT.md" | wc -l | xargs echo "总页面数:"
-for dir in people reflections patterns books concepts; do
-  count=$(find ~/.hermes/brain/$dir/ -name "*.md" 2>/dev/null | wc -l)
-  echo "  $dir: $count"
-done
-echo ""
-echo "--- 最近 7 天新增 ---"
-find ~/.hermes/brain/ -name "*.md" -mtime -7 ! -name "BRAIN_FORMAT.md" | sort
-echo ""
-echo "--- 孤岛页面 ---"
-# (运行上面的孤岛检测脚本)
-echo ""
-echo "--- 待合成模式 ---"
-# (运行模式合成检测)
+- ...
 ```
 
 ## Common Pitfalls
 
-1. **孤岛不修**。发现孤岛后要么链接它，要么删掉它。孤岛 = 白存。
-2. **Back-link 单向**。A 提了 B，B 没回链 A → 断链。
-3. **模式合成太早**。2 次不算模式，至少 3 次 + 跨 7 天。
-4. **只检查不修复**。健康检查的价值在执行修复。
+1. **不跑脚本就决策**。Phase 1 必须跑 `brain_health.py`，不要手动 grep/find。
+2. **孤岛不修**。发现孤岛后要么链接它，要么删掉它。孤岛 = 白存。
+3. **Back-link 单向**。A 提了 B，B 没回链 A → 断链。
+4. **模式合成太早**。脚本已做了 ≥3 次 + ≥7 天的过滤，但仍需判断是否有共同触发条件。
+5. **只检查不修复**。健康检查的价值在执行修复。
 
 ## Verification Checklist
 
+- [ ] `brain_health.py` 已运行且输出已读取
 - [ ] 孤岛页面已处理（链接或删除）
-- [ ] 所有新页面的 back-link 已补全
-- [ ] Frontmatter 完整性已验证
-- [ ] >=3 次出现的主题已合成模式
+- [ ] 所有 back-link issues 已补全
+- [ ] Frontmatter issues 已修复
+- [ ] Stale content 已审视
+- [ ] ≥3 次出现的 pattern candidates 已评估/合成
 - [ ] 健康报告已向用户展示
