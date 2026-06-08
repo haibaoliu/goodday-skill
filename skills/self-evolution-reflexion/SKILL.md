@@ -1,6 +1,6 @@
 ---
 name: self-evolution-reflexion
-description: Reflexion-style self-reflection loop for Hermes. After complex tasks (5+ tool calls, error recovery, or user corrections), generate a structured reflection, extract reusable lessons, and save to memory/skills. Based on Self-Evolving Agents survey (Gao et al., TMLR 2026).
+description: "复杂任务后结构化反思，提取教训持久化到记忆/技能。触发词：反思/学到了什么/reflection/复盘/总结教训。基于TMLR 2026自进化Agent综述。"
 category: software-development
 tags: [self-evolution, reflection, memory, quality]
 ---

@@ -1,6 +1,6 @@
 ---
 name: bilibili-search
-description: Search Bilibili (B站) — zero-auth public API. Find videos, users, articles, live streams. Also supports extracting video subtitles via yt-dlp.
+description: "B站搜索+字幕提取：零认证公开API搜索视频/用户/文章/直播，登录态字幕抓取。触发词：B站/bilibili/哔哩哔哩/搜B站/字幕/弹幕。"
 triggers: B站/bilibili/哔哩哔哩/b站搜索/search bilibili
 ---
 
