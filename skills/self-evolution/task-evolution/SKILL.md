@@ -191,6 +191,7 @@ Create the initial pool if it doesn't exist:
 - **Pool bloat**: task-pool.json could grow large. Cap at 50 task entries; if exceeded, archive old entries to `task-pool-archive.json`.
 - **Stale insights**: Cross-task insights from 3+ months ago may be outdated (tool changes, API changes). Tag with timestamp and re-validate periodically.
 - **Not a replacement for skills**: A repeatable workflow belongs in a skill (skill_manage). The pool is for strategic patterns, not step-by-step procedures.
+- **Path resolution in Hermes profiles**: `~/` resolves to the profile-internal HOME (e.g., `/Users/macbook/.hermes/profiles/chuck/home/`), not the system HOME. When reading/writing task-pool.json programmatically, use absolute paths (e.g., `/Users/macbook/.hermes/profiles/<profile>/task-pool.json`) or resolve via `$HERMES_HOME`. Python's `Path.home()` and `os.path.expanduser('~')` will give the wrong location.
 
 ## Safety (from self-evolution-reflexion)
 

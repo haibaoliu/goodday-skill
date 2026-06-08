@@ -1,8 +1,6 @@
 ---
 name: roundtable
-description: >-
-  Structured roundtable discussion — a truth-seeking multi-character dialectical
-  dialogue framework. A moderator invites 3-5 real historical/contemporary figures
+description: "圆桌辩论：多角色辩证对话，3-5位人物不同立场讨论，主持人引导收敛。触发词：辩论/圆桌/roundtable/多角度/多方对话。"
   to debate any topic. Use when user says "圆桌讨论", "圆桌", "roundtable", "辩论",
   or wants to explore a topic through multi-perspective structured debate.
 version: 1.0.0

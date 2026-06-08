@@ -1,6 +1,6 @@
 ---
 name: agent-safety-compliance
-description: Safety compliance checklist for self-evolving agents. Based on Section 8.3 of Self-Evolving Agents survey (Gao et al., TMLR 2026). Trigger when deploying new tools, modifying agent capabilities, or conducting security reviews.
+description: "Agent安全合规清单。部署新工具/修改能力/安全审计时必查。基于TMLR 2026自进化Agent安全标准§8.3。触发词：安全检查/safety/compliance/安全审计。"
 category: software-development
 tags: [safety, security, compliance, self-evolution]
 ---

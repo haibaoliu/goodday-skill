@@ -1,6 +1,6 @@
 ---
 name: angle-interview
-description: "多角度追问 — 复杂任务启动前，从不同立场追问同一个问题，对比答案发现隐藏假设和矛盾"
+description: "多角度追问：复杂任务前从不同立场追问同一个问题，发现隐藏假设和矛盾。触发词：多角度/追问/不同立场/多视角/interview。"
 version: 0.1.0
 author: Hermes (user-driven)
 category: software-development

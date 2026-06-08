@@ -1,6 +1,6 @@
 ---
 name: brain-query
-description: Use when searching or retrieving information from the Hermes brain (~/.hermes/brain/). Search by keyword, entity, date, or semantic similarity. Detect contradictions across pages.
+description: "搜Brain：从~/.hermes/brain/关键词/日期/语义检索。触发词：之前聊过/还记得/查记录/search/recall。"
 version: 2.0.0
 author: Hermes Brain System
 license: MIT

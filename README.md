@@ -1,174 +1,171 @@
 # Hermes Skills — 开源技能包
 
-一套面向 Hermes Agent 的通用技能，覆盖**大脑系统**、**自进化**、**安全合规**、**创意写作**、**质量管理**和**多智能体协作**六大领域。
+一套面向 Hermes Agent 的通用技能，覆盖大脑系统、自进化、安全合规、创意写作、质量管理、多智能体协作、研究搜索、DevOps、开发工具、效率和旅行领域。
 
 ## 技能清单
 
 | 技能 | 中文名 | 一句话 |
 |------|--------|--------|
-| `brain-ingest` | 大脑摄入 | 用户分享内容时写入结构化 brain page |
-| `brain-query` | 大脑查询 | 关键词/实体/日期/语义搜索 brain，检测矛盾 |
-| `brain-maintain` | 大脑维护 | 健康检查、反向链接审计、孤页检测、模式合成 |
-| `book-mirror` | 书籍镜像 | EPUB/PDF 逐章个性化分析——左栏原文，右栏映射读者生活 |
-| `self-evolution-reflexion` | 自进化反思 | 复杂任务后结构化反思，提取教训持久化到记忆/技能 |
-| `task-evolution` | 任务进化 | 多轨迹累积学习——结构化元数据提取 + 跨任务交叉合成 + 历史经验主动注入 |
-| `agent-safety-compliance` | 安全合规清单 | 4 类风险 + 检查清单 + 具体扫描规则（PII/秘钥/代码安全） |
-| `fable-weaver` | 寓言诊断师 | 现象 → 概念收拢 → 寓言故事 → 概念解析 → 检验问题 |
-| `roundtable` | 圆桌讨论 | 3-5 位历史/当代人物结构化辩证对话，主持人引导真理追寻 |
-| `other-review` | 他者审查 | 独立子 Agent 审查主 Agent 产出，支持多模型共识模式 |
-| `angle-interview` | 多角度追问 | 复杂任务前从对立角度追问，对比答案暴露隐藏矛盾 |
-| `kanban-orchestrator` | 看板编排器 | 任务分解 + 死胡同回避 + 停滞检测自动重组 |
-| `kanban-worker` | 看板工人 | 工作器规范：交棒格式、死胡同记录、重试避障 |
-| `unchanged_filter.py` | UNCHANGED 过滤器 | cron job 输出哈希比对，标记 new/changed/unchanged/dropped，节省 60-80% LLM 工作 |
+| `brain-ingest` | 大脑摄入 | 想法/观察/笔记 → 结构化 brain page |
+| `brain-query` | 大脑查询 | 搜索 brain：关键词/实体/日期/语义 |
+| `brain-maintain` | 大脑维护 | 死链/孤立页/反向链接审计 |
+| `book-mirror` | 书镜 | EPUB/PDF 逐章分析，左栏原文，右栏映射读者生活 |
+| `self-evolution-reflexion` | 自进化反思 | 复杂任务后结构化反思，教训持久化 |
+| `task-evolution` | 任务进化 | 多轨迹累积：元数据提取+跨任务合成+经验注入 |
+| `agent-safety-compliance` | 安全合规 | 4类风险+扫描规则（PII/秘钥/代码安全） |
+| `fable-weaver` | 寓言诊断师 | 现象→概念→寓言→解析→检验 |
+| `humanizer` | 去AI腔 | 润色文本，改得像人写的不僵硬 |
+| `other-review` | 他者审查 | 独立子Agent审查，v2.0 多模型共识 |
+| `angle-interview` | 多角度追问 | 复杂任务前对立角度追问，暴露隐藏矛盾 |
+| `roundtable` | 圆桌辩论 | 3-5位人物结构化辩证对话 |
+| `devops/kanban-orchestrator` | 看板编排器 | 任务分解+死胡同回避+停滞检测 |
+| `devops/kanban-worker` | 看板工人 | 工作器规范：交棒格式/死胡同记录/重试 |
+| `research/github-ai-analysis` | GitHub分析 | AI/ML开源项目深度分析和评估 |
+| `research/sirchmunk-intel-mac` | Sirchmunk | Intel Mac 文档全文搜索安装运行 |
+| `devops/cron-management` | Cron管理 | 调度策略/限流规避/故障模式 |
+| `software-development/agent-memory-systems` | 记忆系统 | 评估比较选择 Agent 记忆方案 |
+| `software-development/hermes-codebase` | Hermes源码 | 修改/扩展/debug Hermes Agent 代码 |
+| `software-development/python-dependency-resolution` | Pip依赖 | pip依赖冲突解决，版本匹配 |
+| `software-development/goodday-trading-systems` | 交易系统 | Goodday 量化交易系统分析扩展 |
+| `productivity/notebooklm` | NotebookLM | Login/list/create/chat/source管理 |
+| `productivity/wechat-article-saver` | 公众号保存 | 微信文章→Markdown+NotebookLM |
+| `bilibili-search` | B站搜索 | 零认证搜索+字幕提取 |
+| `travel/japan-travel-assistant` | 日本旅行 | 中日双语翻译+交通导航+带娃攻略 |
 
 ## 快速安装
 
 ```bash
 # 克隆到 Hermes 技能目录
-git clone https://github.com/YOUR_USER/hermes-skills.git
-cp -r hermes-skills/skills/* ~/.hermes/skills/
+git clone https://github.com/haibaoliu/goodday-skill.git
+cp -r goodday-skill/skills/* ~/.hermes/skills/
 
 # 或按 profile 安装
-cp -r hermes-skills/skills/* ~/.hermes/profiles/<name>/skills/
+cp -r goodday-skill/skills/* ~/.hermes/profiles/<name>/skills/
 ```
 
 ## 技能详解
 
 ### 大脑系统（🧠 Brain）
 
-#### 1. brain-ingest — 大脑摄入
+#### brain-ingest — 大脑摄入
 
-用户分享值得记住的内容（想法、观察、会议记录、灵感）时，写入结构化 brain page。
+用户分享值得记住的内容（想法、观察、会议记录、灵感）时，写入结构化 brain page。触发词：记住/存起来/ingest/消化这篇文章。
 
-**格式**: 遵循 brain-page 格式规范，写入 `~/.hermes/brain/`。
+#### brain-query — 大脑查询
 
-#### 2. brain-query — 大脑查询 v2.0
+从 Hermes Brain 搜索和检索信息。搜索方式：关键词/实体/日期/语义相似度，支持跨页矛盾检测。触发词：之前聊过/还记得/查记录/search/recall。
 
-从 Hermes Brain 中搜索和检索信息。**v2.0 新增** `scripts/brain_query.py` 确定性脚本，处理搜索/过滤/Facts提取/矛盾候选检测，LLM 只负责相关性排序和矛盾真伪判断。
+#### brain-maintain — 大脑维护
 
-**搜索方式**: 关键词 / 实体 / 日期 / 语义相似度，支持跨页矛盾检测。
+Brain 健康巡检。死链检测、孤立页检测、反向链接审计、模式识别。触发词：brain检查/巡检/脑检。定期跑或大量摄入后跑。
 
-**子命令**: `search`（关键词搜索）、`contradictions`（矛盾检测）、`context`（Book Mirror 上下文收集）。
+#### book-mirror — 书镜
 
-#### 3. brain-maintain — 大脑维护 v2.0
-
-Brain 健康检查与知识维护。**v2.0 新增** `scripts/brain_health.py` 确定性脚本，一键输出 JSON 健康报告（孤岛/back-link/frontmatter/stale/pattern 候选），LLM 只负责修复决策和模式合成判断。
-
-**功能**: 反向链接审计、孤页检测、模式合成。建议在大量摄入后或定期运行。
-
-#### 4. book-mirror — 书籍镜像
-
-用户提供书籍（EPUB/PDF），生成逐章个性化分析。
-
-**双栏格式**: 左栏保留原文内容，右栏将每个洞见映射到读者的实际生活（利用 brain 上下文）。输出到 `~/.hermes/brain/books/<slug>-personalized.md`。
+EPUB/PDF 逐章个性化分析。双栏格式：左栏保留原文，右栏将每个洞见映射到读者的实际生活。触发词：读书/分析这本书/书镜/book analysis。
 
 ### 自进化（🔄 Self-Evolution）
 
-#### 5. self-evolution-reflexion — 自进化反思
+#### self-evolution-reflexion — 自进化反思
 
-基于 "A Survey of Self-Evolving Agents" (Gao et al., TMLR 2026) 和 Reflexion 框架设计。
+复杂任务后结构化反思，提取教训持久化到记忆/技能。基于 TMLR 2026 和 Reflexion 框架。带 cross-validation gate 和 confidence tag。
 
-**触发**: 复杂任务完成后（5+ tool calls / 错误恢复 / 用户纠正）
+#### task-evolution — 任务进化
 
-**流程**:
-1. 轨迹总结 — 做了什么、成功了吗
-2. 错误分析 — 根因是什么
-3. 教训提取 — 提炼 1-3 条持久化经验
-4. 持久化 — 环境事实→memory、可复用工作流→skill、用户偏好→user profile
-5. 透明报告 — 向用户展示学了什么
-
-**亮点**: 带 cross-validation gate（避免单次错误归因污染记忆）、confidence tag（verified/single-incident/user-confirmed）、7 天过期机制。
-
-#### 6. task-evolution — 任务进化
-
-受 SE-Agent 启发，将遗传算法的"变异+交叉+选择"引入 Agent 任务执行。
-
-**核心机制**: 复杂任务后提取 9 字段结构化元数据 → 累积到 `task-pool.json` → 同域名 2+ iteration 后自动合成跨任务洞察 → 新任务开始时主动注入历史经验。
-
-**与 self-evolution-reflexion 互补**: reflexion 做细粒度单任务反思→memory，task-evolution 做粗粒度多任务累积→交叉合成。
+受 SE-Agent 启发，多轨迹累积学习。9字段结构化元数据→累积到 task-pool.json→跨任务交叉合成→新任务启动时主动注入历史经验。
 
 ### 安全合规（🛡️ Safety）
 
-#### 7. agent-safety-compliance — 安全合规清单
+#### agent-safety-compliance — 安全合规清单
 
-基于论文 Section 8.3 (Safe and Controllable Self-Evolving Agents) 和 "Your Agent May Misevolve" (Shao et al., ICLR 2026)。
-
-**4 大风险类别**:
-- **自修改漂移**: 安全对齐在记忆积累中退化
-- **工具/代码安全**: 自创工具引入漏洞
-- **隐私/记忆安全**: 敏感数据泄露
-- **行为监控**: 越权操作、资源耗尽
-
-**特点**: 不只声明式警告，包含具体扫描规则——PII regex、API key 模式匹配、代码危险函数检测（eval/exec/os.system）。
+基于 Section 8.3 (Safe Controllable Self-Evolving Agents) 和 "Your Agent May Misevolve"。PII regex、API key 模式匹配、代码危险函数检测。触发词：安全检查/safety/compliance/安全审计。
 
 ### 创意写作（✍️ Creative）
 
-#### 8. fable-weaver — 寓言诊断师
+#### fable-weaver — 寓言诊断师
 
-完整链路：**现象描述 → 概念收拢 → 寓言创作 → 概念解析 → 检验问题**
+完整链路：现象描述→概念收拢→寓言创作→概念解析→检验问题。防套路黑名单杜绝陈词滥调。触发词：寓言/fable/讲故事/换个说法。
 
-**两种模式**:
-- 默认模式 (800-1000 字): 成人/通用
-- 儿童模式 (400-600 字): 动物主角优先，简单句式
+#### humanizer — 去AI腔
 
-**防套路机制**: 内置 6 大黑名单——意象/地名/结构/角色/开头/标题，杜绝陈词滥调。
-
-**已有案例**:
-- 拖延症 → 河狸补裂缝的故事
-- 热-冷共情差距 → 小獾吃蜂蜜的故事
-- 相互强化循环 → 兔妈妈和小兔子的故事
-
-#### 9. roundtable — 圆桌讨论
-
-结构化圆桌讨论 —— 一个真理追寻的多角色辩证对话框架。
-
-**机制**: 主持人邀请 3-5 位真实历史或当代人物就任意话题展开辩论。触发词：圆桌讨论 / roundtable / 辩论。
+文本润色，剥离 AI 腔调，改得像真人写的。触发词：润色/改人话/humanize/de-AI/natural voice。@blader/humanizer 移植。
 
 ### 质量管理（✅ Quality）
 
-#### 10. other-review — 他者审查 v2.0
+#### other-review — 他者审查 v2.0
 
-**核心原则**: 自查是废话，真正有效的审查必须由他者完成。
+独立子 Agent 审查主 Agent 产出，支持多模型共识模式。审查维度：code/security/logic/completeness/correctness/design。严格度：gentle/normal/strict/adversarial。触发词：审查/检查/review/找问题/audit/critique。
 
-**两种模式**:
-- **单模型**: 1 个独立子 Agent 审查
-- **多模型共识**: N 个子 Agent 各用不同模型独立审查，≥2 个模型一致 = 高可信度
+#### angle-interview — 多角度追问
 
-**审查维度**: code / security / logic / completeness / correctness / design / all
+复杂任务前从😨恐惧+✂️删除+⏪回退三个对立角度追问，对比答案暴露隐藏矛盾和认知盲区。触发词：多角度/追问/不同立场/多视角。
 
-**严格度**: gentle → normal → strict → adversarial（假设你全错，全力证明）
+#### roundtable — 圆桌辩论
 
-#### 11. angle-interview — 多角度追问
-
-复杂任务动手前，从 6 组对立角度中选 3 个追问，对比答案发现隐藏矛盾。
-
-**默认三问**: 😨恐惧 + ✂️删除 + ⏪回退
-
-**矛盾检测**: 恐惧说要防泄露，但愿意砍掉审计日志 → 认知盲区暴露。
+结构化圆桌讨论，3-5 位真实历史/当代人物就任意话题辩证对话，主持人引导真理追寻。触发词：辩论/圆桌/roundtable/多角度/多方对话。
 
 ### 多智能体协作（🤝 Multi-Agent）
 
-#### 12. kanban-orchestrator — 看板编排器
+#### kanban-orchestrator — 看板编排器
 
-任务分解、路由与自愈的编排器技能。受 AutoScientists (Harvard, 2026) 启发。
+任务分解、路由与自愈。死胡同注册避免重复失败，停滞检测自动重组，依赖门控确保顺序。编排器只做分解和路由，不亲自执行。
 
-**核心机制**:
-- **死胡同注册**: 分解前读取 dead-end registry，自动避开已失败方向
-- **停滞检测**: 连续 3 次无改进任务 → 触发 Merge/Split/Redirect/Abandon
-- **依赖门控**: 子任务自动等待父任务完成后再进入 ready
+#### kanban-worker — 看板工人
 
-**Anti-temptation 规则**: 编排器只做分解和路由，不亲自执行实现工作。
+工作器规范与边缘案例手册。结构化交棒格式、方法级死胡同记录、重试避障。与 orchestrator 联动。
 
-#### 13. kanban-worker — 看板工人
+### 研究搜索（🔍 Research）
 
-Kanban 工作器的规范与边缘案例手册。由调度器自动加载到每个派发的工作器中。
+#### github-ai-analysis — GitHub 分析
 
-**核心机制**:
-- **交棒格式**: 结构化 metadata（changed_files / tests_run / decisions）供下游解析
-- **死胡同记录**: 方法级失败时自动写入 dead-end registry（block/warn 分级）
-- **重试避障**: 重试前先读 registry，命中 block 则直接 cancel
+AI/ML 开源项目深度分析：架构解构、创新评估、Hermes 相关性、benchmark、行动建议。触发词：分析这个项目/github analysis/评估仓库。
 
-**与 orchestrator 联动**: Worker 写死胡同 → Orchestrator 读死胡同 → 新任务带死胡同警告。
+#### sirchmunk-intel-mac — Sirchmunk
+
+在 Intel Mac (x86_64) 上安装运行 Sirchmunk 全文搜索。覆盖 kreuzberg stub 绕行、rga 安装和环境配置。
+
+### DevOps
+
+#### cron-management — Cron 管理
+
+Hermes cron job 调度策略、限流规避、交付可靠性、常见故障模式。在创建/调试 cron job 或交付失败时加载。
+
+### 开发工具（🛠️ Dev Tools）
+
+#### agent-memory-systems — 记忆系统
+
+评估、比较和选择 AI Agent 记忆方案的知识库。触发词：agent memory/mem0/memos/memory comparison。
+
+#### hermes-codebase — Hermes 源码
+
+修改、扩展或调试 Hermes Agent 代码库。覆盖 config/providers/prompts/tools/内部架构。触发词：改Hermes/修改agent/hermes源码。
+
+#### python-dependency-resolution — Pip 依赖
+
+解决复杂 pip 依赖冲突。isolation→version-match→unblock install chains。触发词：pip conflict/dependency/pip install failed。
+
+#### goodday-trading-systems — 交易系统
+
+分析、修改或扩展 Goodday 量化交易系统（MT4/MT5 EA、TCN+PPO、Kronos）。触发词：goodday/trading/TCN/PPO/MT5/Kronos。
+
+### 效率工具（⚡ Productivity）
+
+#### notebooklm — NotebookLM
+
+Google NotebookLM 交互管理：login/list/create/chat/source 管理。触发词：NotebookLM/notebook/笔记问答/deep reading。
+
+#### wechat-article-saver — 公众号保存
+
+微信公众平台文章保存为 Markdown，支持 NotebookLM 深度阅读。触发词：公众号/mp.weixin.qq.com。
+
+#### bilibili-search — B站搜索
+
+Bilibili 搜索 + 字幕提取。零认证公开 API 搜索，登录态字幕抓取。触发词：B站/bilibili/哔哩哔哩/b站搜索。
+
+### 旅行（✈️ Travel）
+
+#### japan-travel-assistant — 日本旅行助手
+
+中日双语翻译桥、东京交通导航、菜单标识翻译、带娃出行攻略、紧急联络。触发词：日本/东京/日语/旅行/Japan。
 
 ## 设计理念
 

@@ -1,6 +1,6 @@
 ---
 name: fable-weaver
-description: 寓言诊断师 (Fable Weaver)——将任何现象或概念转化为精炼的寓言故事。你描述一个现象，我收拢到对应的概念/效应，写成寓言间接讲述，不点破、不说教。适用于教育场景（给小朋友讲道理）、知识传播、概念解释。自带防套路黑名单，避免陈词滥调。
+description: "寓言诊断师：将现象/概念转为精炼寓言，不点破不说教。自带防套路黑名单。触发词：寓言/fable/讲故事/教小朋友/道理故事/换个说法。"
 version: 1.0.0
 category: creative
 tags: [fable, allegory, education, storytelling, children, concept-explanation]

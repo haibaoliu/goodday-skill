@@ -1,6 +1,6 @@
 ---
 name: other-review
-description: "他者审查 — 用独立子 Agent 审查主 Agent 的工作成果，拒绝自圆其说。v2.0 支持多模型共识审查。"
+description: "复杂任务完成后用独立子Agent审查主Agent工作，拒绝自圆其说。触发词：审查/检查/review/找问题/audit/critique。v2.0 多模型共识。"
 version: 2.0.0
 author: Hermes (user-driven)
 category: software-development

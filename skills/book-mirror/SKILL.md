@@ -1,6 +1,6 @@
 ---
 name: book-mirror
-description: Use when the user provides a book (EPUB/PDF) and wants a personalized chapter-by-chapter analysis. Left column preserves book content; right column maps every insight to the reader's actual life using brain context. Outputs to ~/.hermes/brain/books/<slug>-personalized.md.
+description: "书镜：EPUB/PDF逐章分析，左列原书精华，右列映射读者生活。输出brain/books/。触发词：读书/分析这本书/书镜/book analysis。"
 version: 1.0.0
 author: Hermes Brain System
 license: MIT
@@ -242,7 +242,19 @@ delegate_task(tasks=[
 
 ## 5. 拼装最终脑页
 
-父 Agent 拿到所有子 Agent 的分析结果后，拼装：
+父 Agent 拿到所有子 Agent 的分析结果后，拼装。
+
+**⚠️ 关键：子 Agent 输出可能出现在两个地方**
+
+1. **`result.summary`** — 子 Agent 直接返回的文本 ✅
+2. **磁盘文件** — 子 Agent 可能用 `write_file` 把分析写到了某个 .md 文件 ⚠️
+
+拼装前必须同时检查两处：
+- 读每个 task 的 `summary` 字段
+- 如果 summary 里提到"文件已生成""wrote to"，用 `read_file` 读取那个文件路径
+- 如果 summary 为空或太短，很可能结果在磁盘上——搜 `/tmp/` 或子 Agent 工作目录
+
+**拼装模板**：
 
 ```markdown
 ---

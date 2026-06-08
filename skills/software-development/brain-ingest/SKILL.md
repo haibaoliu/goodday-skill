@@ -1,6 +1,6 @@
 ---
 name: brain-ingest
-description: Use when the user shares content worth remembering (thoughts, observations, meeting notes, ideas, reflections). Write structured brain pages into ~/.hermes/brain/ following the brain-page format spec.
+description: "Brain摄入：把想法/观察/笔记/反思结构化写入brain。触发词：记住/存起来/ingest/消化这篇文章。"
 version: 1.0.0
 author: Hermes Brain System
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: brain-maintain
-description: Use when the brain needs health checks, back-link audits, orphan detection, or pattern synthesis. Run periodically or after heavy ingestion sessions.
+description: "Brain健康巡检：死链/孤立页/模式识别/反向链接审计。触发词：brain检查/brain健康/巡检/脑检/back-link audit。定期跑或大量摄入后跑。"
 version: 2.0.0
 author: Hermes Brain System
 license: MIT
